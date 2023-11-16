@@ -1,7 +1,12 @@
 <template>
   <view>
     <scroll-view scroll-y class="box">
-      <view class="item" v-for="item in deviceList" @click="connect(item)">
+      <view
+        class="item"
+        v-for="(item, index) in deviceList"
+        :key="index"
+        @click="connect(item)"
+      >
         <view>
           <text>id: {{ item.deviceId }}</text>
         </view>
@@ -27,6 +32,8 @@
     <button @click="onBeaconServiceChange">获取Beacons服务变化</button>
 
     <button @click="onBeaconUpdate">获取Beacons设备更新</button>
+
+    <button @click="stopIBeaconDiscovery">停止搜索IBeacon</button>
   </view>
 </template>
 
@@ -43,6 +50,7 @@ const {
   getBeacons,
   onBeaconServiceChange,
   onBeaconUpdate,
+  stopIBeaconDiscovery,
 } = useBlueTooth();
 </script>
 
