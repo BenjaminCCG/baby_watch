@@ -27,6 +27,8 @@
 
     <button @click="getServices">获取蓝牙服务</button>
 
+    <button @click="getDeviceList">获取蓝牙连接列表</button>
+
     <button @click="getBeacons">获取Beacons服务</button>
 
     <button @click="onBeaconServiceChange">获取Beacons服务变化</button>
@@ -51,6 +53,7 @@ const {
   onBeaconServiceChange,
   onBeaconUpdate,
   stopIBeaconDiscovery,
+  getDeviceList,
 } = useBlueTooth();
 </script>
 
