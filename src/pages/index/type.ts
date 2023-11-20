@@ -14,7 +14,7 @@ export interface BluetoothDeviceInfo {
   /**
    * 当前蓝牙设备的广播数据段中的ManufacturerData数据段 （注意：vConsole 无法打印出 ArrayBuffer 类型数据）
    */
-  advertisData: any[];
+  advertisData: any[] | ArrayBuffer;
   /**
    * 当前蓝牙设备的广播数据段中的ServiceUUIDs数据段
    */
