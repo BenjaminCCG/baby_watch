@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import type { BluetoothDeviceInfo } from "./type";
+import { temperatureMapping, activityMapping } from "./mapping";
 export function useBlueTooth() {
   const deviceList = ref<BluetoothDeviceInfo[]>([]);
 
@@ -42,51 +43,52 @@ export function useBlueTooth() {
   };
   const deviceId = ref("");
 
-  function parseMinorData(arrayBuffer: ArrayBuffer) {
-    const uuidBytes = new Uint8Array(arrayBuffer.slice(0, 16));
+  function parseBroadcastData(data: ArrayBuffer) {
+    // Assuming data is an ArrayBuffer with byteLength either 48 or 25
+    const view = new DataView(data);
 
-    const majorBytes = new Uint8Array(arrayBuffer.slice(16, 18));
-    const minorBytes = new Uint8Array(arrayBuffer.slice(18, 20));
+    // Parse UUID
+    const uuid = String.fromCharCode.apply(
+      null,
+      new Uint8Array(data.slice(0, 5)) as any
+    );
+    const tagType = view.getUint8(5);
 
-    const major = (majorBytes[0] << 8) | majorBytes[1];
-    const minor = (minorBytes[0] << 8) | minorBytes[1];
+    // Parse Reserved field (8 bytes, ignore for now)
+    // const reserved = new Uint8Array(data.slice(6, 14));
 
-    const temperature = (minor >> 6) & 0x1f; // 取Minor的高6位作为温度值
-    const activity = minor & 0x03;
+    // Parse Tag ID
+    const tagID = view.getUint16(14, true);
 
-    // 解析温度
-    let temperatureValue = 36.1 + temperature * 0.1;
+    // Parse Major field
+    const major = view.getUint16(16, true);
 
-    // 解析活动量
-    let activityLevel;
-    switch (activity) {
-      case 0:
-        activityLevel = "安静";
-        break;
-      case 1:
-        activityLevel = "正常躁动";
-        break;
-      case 2:
-        activityLevel = "躁动";
-        break;
-      case 3:
-        activityLevel = "非常躁动";
-        break;
-      default:
-        activityLevel = "未知";
-    }
+    // Parse Minor field
+    const minor = view.getUint16(18, true);
+    const temperatureIndex = (minor >> 10) & 0x3f; // Get the high 6 bits
+    const activityIndex = minor & 0x03; // Get the low 2 bits
+
+    // Temperature mapping
+
+    const temperature = temperatureMapping[temperatureIndex];
+
+    const activity = activityMapping[activityIndex];
+
     return {
-      temperatureValue,
-      activityLevel,
+      uuid,
+      tagType,
+      tagID,
+      major,
+      minor,
+      temperature,
+      activity,
     };
   }
 
   const connect = (data: BluetoothDeviceInfo) => {
-    console.log(data, "data");
     deviceId.value = data.deviceId;
-
-    const val = parseMinorData(data.advertisData as ArrayBuffer);
-    console.log(val, "val22222222222");
+    const val = parseBroadcastData(data.advertisData as ArrayBuffer);
+    console.log(val, "parseBroadcastData");
 
     // uni.createBLEConnection({
     //   deviceId: data.deviceId,
