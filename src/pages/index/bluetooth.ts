@@ -43,41 +43,84 @@ export function useBlueTooth() {
   };
   const deviceId = ref("");
 
-  function parseBroadcastData(data: ArrayBuffer) {
-    // Assuming data is an ArrayBuffer with byteLength either 48 or 25
-    const view = new DataView(data);
+  // 解析广播包数据
+  function parseAdvertisementData(advertisementData: ArrayBuffer) {
+    // 根据广播包数据长度选择不同的解析方式
+    if (advertisementData.byteLength === 48) {
+      return parseType1Data(advertisementData);
+    } else if (advertisementData.byteLength === 25) {
+      return parseType2Data(advertisementData);
+    } else {
+      return null; // 无法解析的数据格式
+    }
+  }
 
-    // Parse UUID
-    const uuid = String.fromCharCode.apply(
-      null,
-      new Uint8Array(data.slice(0, 5)) as any
+  // 解析类型1的广播包数据
+  function parseType1Data(advertisementData: ArrayBuffer) {
+    const int8Array = new Int8Array(advertisementData);
+
+    // 提取UUID
+    const uuid = String.fromCharCode(...int8Array.subarray(0, 5));
+
+    // 提取标签类型
+    const tagType = int8Array[5];
+
+    // 提取标签ID
+    const tagId = int8Array.subarray(16, 18);
+
+    // 提取Major和Minor
+    const major = int8Array.subarray(6, 8);
+    const minor = int8Array.subarray(8, 10);
+
+    // 解析Minor中的温度和活动量
+    const temperature = temperatureMapping[(minor[0] << 8) | minor[1]];
+    const activity = activityMapping[minor[1] & 0x03];
+    console.log(
+      (minor[0] << 8) | minor[1],
+      minor[1] & 0x03,
+      "------------------------------48"
     );
-    const tagType = view.getUint8(5);
-
-    // Parse Reserved field (8 bytes, ignore for now)
-    // const reserved = new Uint8Array(data.slice(6, 14));
-
-    // Parse Tag ID
-    const tagID = view.getUint16(14, true);
-
-    // Parse Major field
-    const major = view.getUint16(16, true);
-
-    // Parse Minor field
-    const minor = view.getUint16(18, true);
-    const temperatureIndex = (minor >> 10) & 0x3f; // Get the high 6 bits
-    const activityIndex = minor & 0x03; // Get the low 2 bits
-
-    // Temperature mapping
-
-    const temperature = temperatureMapping[temperatureIndex];
-
-    const activity = activityMapping[activityIndex];
 
     return {
       uuid,
       tagType,
-      tagID,
+      tagId,
+      major,
+      minor,
+      temperature,
+      activity,
+    };
+  }
+
+  // 解析类型2的广播包数据
+  function parseType2Data(advertisementData: ArrayBuffer) {
+    const int8Array = new Int8Array(advertisementData);
+
+    // 提取UUID
+    const uuid = String.fromCharCode(...int8Array.subarray(0, 5));
+
+    // 提取标签类型
+    const tagType = int8Array[5];
+
+    // 提取标签ID
+    const tagId = int8Array.subarray(16, 18);
+
+    // 提取Major和Minor
+    const major = int8Array.subarray(6, 8);
+    const minor = int8Array.subarray(8, 10);
+
+    // 解析Minor中的温度和活动量
+    const temperature = temperatureMapping[(minor[0] << 8) | minor[1]];
+    const activity = activityMapping[minor[1] & 0x03];
+    console.log(
+      (minor[0] << 8) | minor[1],
+      minor[1] & 0x03,
+      "------------------------------25"
+    );
+    return {
+      uuid,
+      tagType,
+      tagId,
       major,
       minor,
       temperature,
@@ -86,9 +129,10 @@ export function useBlueTooth() {
   }
 
   const connect = (data: BluetoothDeviceInfo) => {
+    console.log("🚀 ~ file: bluetooth.ts:89 ~ connect ~ data:", data);
     deviceId.value = data.deviceId;
-    const val = parseBroadcastData(data.advertisData as ArrayBuffer);
-    console.log(val, "parseBroadcastData");
+    const val = parseAdvertisementData(data.advertisData as ArrayBuffer);
+    console.log(val, "parseAdvertisementData");
 
     // uni.createBLEConnection({
     //   deviceId: data.deviceId,
